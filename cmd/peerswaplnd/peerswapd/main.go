@@ -102,9 +102,6 @@ func run() error {
 	defer closeFunc()
 	log.SetLogger(logger)
 
-	fmt.Printf("[Debug config] %+v\n", cfg)
-	fmt.Printf("[Debug config RpcAuth] %+v\n", cfg.RpcAuth)
-
 	// make datadir
 	err = os.MkdirAll(cfg.DataDir, 0755)
 	if err != nil {

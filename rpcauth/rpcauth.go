@@ -85,6 +85,7 @@ func ParseConfigValues(authValues []string) map[string]Entry {
 	for _, v := range authValues {
 		s := strings.TrimSpace(v)
 		if s == "" || strings.Contains(s, ",") {
+			log.Infof("Warning: skipping invalid rpcauth entry: %s", prefix(s, 64))
 			continue
 		}
 		entries = append(entries, s)
