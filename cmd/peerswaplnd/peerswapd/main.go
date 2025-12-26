@@ -22,6 +22,7 @@ import (
 	"github.com/elementsproject/peerswap/log"
 	"github.com/elementsproject/peerswap/lwk"
 	"github.com/elementsproject/peerswap/premium"
+	"github.com/elementsproject/peerswap/rpcauth"
 
 	"github.com/elementsproject/peerswap/version"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -405,18 +406,20 @@ func run() error {
 	}
 	defer lis.Close()
 
-	grpcSrv := grpc.NewServer()
+	security := rpcauth.BuildSecurity(cfg.RpcAuth, cfg.RpcAllowIP)
 
+	grpcOpts := rpcauth.GRPCServerOptions(security)
+	grpcSrv := grpc.NewServer(grpcOpts...)
 	peerswaprpc.RegisterPeerSwapServer(grpcSrv, peerswaprpcServer)
 
 	go func() {
-		err := grpcSrv.Serve(lis)
-		if err != nil {
+		if err := grpcSrv.Serve(lis); err != nil {
 			core_log.Fatal(err)
 		}
 	}()
 	defer grpcSrv.Stop()
 	log.Infof("peerswapd grpc listening on %v", cfg.Host)
+
 	if cfg.RestHost != "" {
 		mux := runtime.NewServeMux(
 			runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{
@@ -430,19 +433,20 @@ func run() error {
 			}),
 		)
 		opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
-		err := peerswaprpc.RegisterPeerSwapHandlerFromEndpoint(ctx, mux, cfg.Host, opts)
-		if err != nil {
+		if err := peerswaprpc.RegisterPeerSwapHandlerFromEndpoint(ctx, mux, cfg.Host, opts); err != nil {
 			return err
 		}
+
+		handler := rpcauth.RESTHandler(mux, security)
+
 		go func() {
-			err := http.ListenAndServe(cfg.RestHost, mux)
-			if err != nil {
+			if err := http.ListenAndServe(cfg.RestHost, handler); err != nil {
 				core_log.Fatal(err)
 			}
 		}()
-
 		log.Infof("peerswapd rest listening on %v", cfg.RestHost)
 	}
+
 	<-shutdown
 	return nil
 }
