@@ -92,14 +92,16 @@ func (r *LWKRpcWallet) IsSupportedVersion() bool {
 func (r *LWKRpcWallet) setupWallet(ctx context.Context) error {
 	timeoutCtx, cancel := context.WithTimeout(ctx, defaultContextTimeout)
 	defer cancel()
-	vres, err := r.lwkClient.version(timeoutCtx)
-	if err != nil {
-		return err
-	}
-	r.lwkVersion = vres.Version
-	if !r.IsSupportedVersion() {
-		return errors.New("unsupported lwk version. expected: " + supportedCLIVersion + " got: " + r.lwkVersion)
-	}
+
+	// Skipping version check
+	// vres, err := r.lwkClient.version(timeoutCtx)
+	// if err != nil {
+	// 	return err
+	// }
+	// r.lwkVersion = vres.Version
+	// if !r.IsSupportedVersion() {
+	// 	return errors.New("unsupported lwk version. expected: " + supportedCLIVersion + " got: " + r.lwkVersion)
+	// }
 
 	res, err := r.lwkClient.walletDetails(timeoutCtx, &walletDetailsRequest{
 		WalletName: r.c.GetWalletName(),
